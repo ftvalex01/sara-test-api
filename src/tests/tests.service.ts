@@ -16,6 +16,8 @@ export class TestsService {
   ) {}
 
   async generateTest(userId: string, numberOfQuestions: number): Promise<Question[]> {
+    console.log(userId)
+    console.log(numberOfQuestions)
     const completedQuestionsIds = await this.completedTestModel.find({ userId: new Types.ObjectId(userId) }).distinct('questions');
     const availableQuestions = await this.questionModel.find({ _id: { $nin: completedQuestionsIds } }).limit(numberOfQuestions).exec();
     return availableQuestions;
