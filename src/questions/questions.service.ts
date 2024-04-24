@@ -5,7 +5,8 @@ import { Model } from 'mongoose';
 import { Question, QuestionDocument } from './schema/question.schema';
 import { CreateQuestionDto } from './dto/CreateQuestionDto.dto';
 import { CheckAnswersDto } from './dto/CheckAnswersDto.dto';
-import { ResultsDto } from './dto/ResultsDto.dto';
+import { TestResultsDto } from 'src/tests/dto/test-results.dto';
+
 
 @Injectable()
 export class QuestionsService {
@@ -25,24 +26,24 @@ export class QuestionsService {
   }
 
  
-async checkAnswers(answersDto: CheckAnswersDto): Promise<ResultsDto> {
+async checkAnswers(answersDto: CheckAnswersDto): Promise<TestResultsDto> {
     let correctCount = 0;
     const details = [];
   
     for (const answer of answersDto.answers) {
       const question = await this.QuestionModel.findById(answer.questionId).exec();
-      const isCorrect = question && question.answer === answer.selectedOption;
+      const isCorrect = question && question.correct_answer === answer.selectedOption;
       correctCount += isCorrect ? 1 : 0;
       
       details.push({
         questionId: answer.questionId,
-        correctAnswer: question?.answer,
+        correctAnswer: Object.keys(question.options).find(key => question.options[key] === question.correct_answer),
         selectedAnswer: answer.selectedOption,
         isCorrect: isCorrect
       });
     }
   
-    const results: ResultsDto = {
+    const results: TestResultsDto = {
       correctCount: correctCount,
       incorrectCount: answersDto.answers.length - correctCount,
       totalQuestions: answersDto.answers.length,

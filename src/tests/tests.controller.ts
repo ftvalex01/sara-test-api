@@ -4,7 +4,7 @@ import { TestsService } from './tests.service';
 import { CreateTestDto } from './dto/create-test.dto';
 import { CompletedTestDto } from './dto/completed-test.dto';
 import { Question } from 'src/questions/schema/question.schema';
-import { CompletedTest } from './schemas/completed-test.schema';
+import { TestResultsDto } from './dto/test-results.dto';
 
 @Controller('tests')
 export class TestsController {
@@ -16,7 +16,7 @@ export class TestsController {
   }
 
   @Post('complete')
-  async saveCompletedTest(@Body() completedTestDto: CompletedTestDto): Promise<CompletedTest> {
+  async saveCompletedTest(@Body() completedTestDto: CompletedTestDto): Promise<TestResultsDto> {
     return this.testsService.saveCompletedTest(completedTestDto);
   }
 

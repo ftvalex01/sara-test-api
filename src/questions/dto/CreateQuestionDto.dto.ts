@@ -1,14 +1,13 @@
-// src/questions/dto/create-question.dto.ts
-import { IsString, IsArray, ArrayMinSize, IsNotEmpty } from 'class-validator';
+import { IsString, IsObject, IsNotEmpty } from 'class-validator';
 
 export class CreateQuestionDto {
   @IsNotEmpty()
   @IsString()
   readonly question: string;
 
-  @IsArray()
-  @ArrayMinSize(4)
-  readonly options: string[];
+  @IsObject()
+  @IsNotEmpty()
+  readonly options: Record<string, string>;
 
   @IsNotEmpty()
   @IsString()
