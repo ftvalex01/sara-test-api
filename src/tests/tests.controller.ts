@@ -5,6 +5,7 @@ import { CreateTestDto } from './dto/create-test.dto';
 import { CompletedTestDto } from './dto/completed-test.dto';
 import { Question } from 'src/questions/schema/question.schema';
 import { TestResultsDto } from './dto/test-results.dto';
+import { CompletedTest } from './schemas/completed-test.schema';
 
 @Controller('tests')
 export class TestsController {
@@ -20,6 +21,7 @@ export class TestsController {
     return this.testsService.saveCompletedTest(completedTestDto);
   }
 
+
   @Get('faults/:userId')
   async getFaults(@Param('userId') userId: string): Promise<Question[]> {
     return this.testsService.getFaults(userId);
@@ -29,6 +31,12 @@ export class TestsController {
   @Post('reset/:userId')
   async resetTests(@Param('userId') userId: string): Promise<{ success: boolean }> {
     return this.testsService.resetCompletedTests(userId);
+  }
+  
+
+  @Get('completed')
+  async getCompletedTests(): Promise<CompletedTest[]> {
+    return this.testsService.getCompletedTests();
   }
   
 }

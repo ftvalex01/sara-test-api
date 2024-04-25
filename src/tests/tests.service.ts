@@ -98,6 +98,31 @@ export class TestsService {
       return { success: false };
     }
   }
+  async getCompletedTests(): Promise<any[]> {
+    const tests = await this.completedTestModel.find()
+        .populate({
+            path: 'questions',
+            model: 'Question',
+            select: 'question options correct_answer'  // asegúrate de que estos son los campos correctos
+        })
+        .exec();
+
+    console.log("Tests with populated questions:", tests);
+
+    return tests.map(test => ({
+      ...test.toObject(),
+      questions: (test.questions as any[]).map(question => ({
+        questionId: question._id.toString(),
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correct_answer
+      })),
+      answers: test.answers
+    }));
+}
+
+
+
 }
 
 
