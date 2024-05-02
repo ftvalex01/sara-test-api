@@ -1,5 +1,5 @@
 // src/tests/dto/create-test.dto.ts
-import { IsMongoId, IsNumber, Min, Max } from 'class-validator';
+import { IsMongoId, IsNumber, Min, Max, IsString, IsOptional } from 'class-validator';
 
 export class CreateTestDto {
   @IsMongoId()
@@ -9,4 +9,8 @@ export class CreateTestDto {
   @Min(1)
   @Max(20)
   numberOfQuestions: number;
+
+  @IsString()
+  @IsOptional()
+  testName?: string;
 }

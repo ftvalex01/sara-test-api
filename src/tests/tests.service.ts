@@ -17,64 +17,50 @@ export class TestsService {
   ) { }
 
   async generateTest(userId: string, numberOfQuestions: number): Promise<Question[]> {
-    console.log(userId)
-    console.log(numberOfQuestions)
+
     const completedQuestionsIds = await this.completedTestModel.find({ userId: new Types.ObjectId(userId) }).distinct('questions');
     const availableQuestions = await this.questionModel.find({ _id: { $nin: completedQuestionsIds } }).limit(numberOfQuestions).exec();
     return availableQuestions;
   }
 
   async saveCompletedTest(completedTestData: CompletedTestDto): Promise<TestResultsDto> {
+    // Guarda el test completado
+    console.log(completedTestData)
     const newCompletedTest = new this.completedTestModel({
         userId: new Types.ObjectId(completedTestData.userId),
         questions: completedTestData.answers.map(answer => new Types.ObjectId(answer.questionId)),
         answers: completedTestData.answers.map(answer => answer.selectedOption),
-        createdAt: new Date()
+        createdAt: new Date(),
+        testName: completedTestData.testName,
     });
-
-    // Guarda el test completado en la base de datos
     await newCompletedTest.save();
 
-    // Busca las preguntas para obtener las respuestas correctas
-    const questions = await this.questionModel.find({
-        '_id': { $in: completedTestData.answers.map(a => a.questionId) }
-    }).exec();
-
-    // Prepara los detalles de las respuestas
+    // Detalles de las respuestas
+    const questions = await this.questionModel.find({'_id': { $in: completedTestData.answers.map(a => a.questionId) }}).exec();
     const details = completedTestData.answers.map(answer => {
         const question = questions.find(q => q._id.toString() === answer.questionId);
         const isCorrect = question?.correct_answer === answer.selectedOption; 
-        return {
-            questionId: answer.questionId,
-            correctAnswer: question?.correct_answer, 
-            selectedAnswer: answer.selectedOption,
-            isCorrect: isCorrect
-        };
+        return { questionId: answer.questionId, correctAnswer: question?.correct_answer, selectedAnswer: answer.selectedOption, isCorrect };
     });
 
-    // Guarda las respuestas falladas para futuros tests
-    const faults = details.filter(d => !d.isCorrect).map(faultyAnswer => ({
-        userId: new Types.ObjectId(completedTestData.userId),
-        questionId: new Types.ObjectId(faultyAnswer.questionId),
-        attemptedAnswer: faultyAnswer.selectedAnswer,
-        createdAt: new Date()
-    }));
+    // Filtra para encontrar sólo fallos no acertados previamente
+    const newFaults = details.filter(d => !d.isCorrect && !this.faultModel.exists({ userId: new Types.ObjectId(completedTestData.userId), questionId: new Types.ObjectId(d.questionId) }));
+    await this.faultModel.insertMany(newFaults);
 
-    if (faults.length > 0) {
-        await this.faultModel.insertMany(faults);
-    }
+    // Elimina o actualiza fallos acertados
+    details.filter(d => d.isCorrect).forEach(async (detail) => {
+        await this.faultModel.deleteOne({ userId: new Types.ObjectId(completedTestData.userId), questionId: new Types.ObjectId(detail.questionId) });
+    });
 
-    // Prepara y devuelve los resultados del test
+    // Devuelve los resultados
     const results = {
         correctCount: details.filter(d => d.isCorrect).length,
         incorrectCount: details.filter(d => !d.isCorrect).length,
         totalQuestions: details.length,
-        details: details
+        details
     };
-
     return results;
 }
-
 
   async getFaults(userId: string): Promise<Question[]> {
     const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId) }).exec();
@@ -83,12 +69,23 @@ export class TestsService {
   }
 
 
+async getFaultsTest(userId: string, limit: number): Promise<Question[]> {
+  const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId) }).limit(limit).exec();
+  const questionIds = faults.map(fault => fault.questionId);
+  return this.questionModel.find({ _id: { $in: questionIds } }).exec();
+}
+
+// En tu archivo de servicio en NestJS
+async countFaults(userId: string): Promise<number> {
+  return this.faultModel.countDocuments({ userId: new Types.ObjectId(userId) }).exec();
+}
+
   // Función para reiniciar las preguntas contestadas para un usuario
   async resetCompletedTests(userId: string): Promise<{ success: boolean }> {
     try {
       // Opción 1: Eliminar los registros de CompletedTest
       await this.completedTestModel.deleteMany({ userId: new Types.ObjectId(userId) });
-
+      await this.faultModel.deleteMany({ userId: new Types.ObjectId(userId) });
       // Opción 2: Archivar los registros si necesitas mantener un historial
       // Podrías agregar un campo 'archived' al esquema y marcarlo aquí
 
@@ -98,12 +95,13 @@ export class TestsService {
       return { success: false };
     }
   }
-  async getCompletedTests(): Promise<any[]> {
-    const tests = await this.completedTestModel.find()
+  async getCompletedTests(userId?: string): Promise<any[]> {
+    const query = userId ? { userId: new Types.ObjectId(userId) } : {};
+    const tests = await this.completedTestModel.find(query)
         .populate({
             path: 'questions',
             model: 'Question',
-            select: 'question options correct_answer'  // asegúrate de que estos son los campos correctos
+            select: 'question options correct_answer'
         })
         .exec();
 

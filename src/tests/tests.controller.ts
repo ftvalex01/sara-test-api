@@ -26,6 +26,18 @@ export class TestsController {
   async getFaults(@Param('userId') userId: string): Promise<Question[]> {
     return this.testsService.getFaults(userId);
   }
+// En tu controlador de NestJS
+@Get('count-faults/:userId')
+async getCountFaults(@Param('userId') userId: string): Promise<{count: number}> {
+  const count = await this.testsService.countFaults(userId);
+  return { count };
+}
+
+@Post('faults')
+async getFaultsTest(@Body() body: any): Promise<Question[]> {
+  const { userId, limit } = body;
+  return this.testsService.getFaultsTest(userId, limit);
+}
 
 
   @Post('reset/:userId')
@@ -34,10 +46,12 @@ export class TestsController {
   }
   
 
-  @Get('completed')
-  async getCompletedTests(): Promise<CompletedTest[]> {
-    return this.testsService.getCompletedTests();
+  @Get('completed/:userId')
+  async getCompletedTests(@Param('userId') userId: string) {
+    return this.testsService.getCompletedTests(userId);
   }
+
+  
   
 }
 

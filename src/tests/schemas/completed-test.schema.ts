@@ -8,6 +8,7 @@ export type CompletedTestDocument = Document & {
   questions: Types.ObjectId[];
   answers: string[];
   createdAt: Date;
+  testName?: string;
 };
 
 @Schema()
@@ -23,6 +24,9 @@ export class CompletedTest {
 
   @Prop({ default: Date.now })
   createdAt: Date;
+
+  @Prop() 
+  testName?: string;
 }
 
 export const CompletedTestSchema = SchemaFactory.createForClass(CompletedTest);
