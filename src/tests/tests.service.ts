@@ -47,7 +47,8 @@ export class TestsService {
       userId: new Types.ObjectId(completedTestData.userId),
       questionId: new Types.ObjectId(faultyAnswer.questionId),
       attemptedAnswer: faultyAnswer.selectedAnswer,
-      createdAt: new Date()
+      createdAt: new Date(),
+      testName: completedTestData.testName,
     }));
 
     if (faults.length > 0) {
@@ -80,13 +81,13 @@ export class TestsService {
   }
 
 
-  async getFaultsTest(userId: string, limit: number): Promise<Question[]> {
+  async getFaultsTest(userId: string, limit: number, testName: string): Promise<Question[]> {
     const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId) }).limit(limit).exec();
     const questionIds = faults.map(fault => fault.questionId);
     return this.questionModel.find({ _id: { $in: questionIds } }).exec();
   }
 
-  // En tu archivo de servicio en NestJS
+ 
   async countFaults(userId: string): Promise<number> {
     return this.faultModel.countDocuments({ userId: new Types.ObjectId(userId) }).exec();
   }
@@ -98,7 +99,7 @@ export class TestsService {
       await this.completedTestModel.deleteMany({ userId: new Types.ObjectId(userId) });
       await this.faultModel.deleteMany({ userId: new Types.ObjectId(userId) });
       // Opción 2: Archivar los registros si necesitas mantener un historial
-      // Podrías agregar un campo 'archived' al esquema y marcarlo aquí
+    
 
       return { success: true };
     } catch (error) {

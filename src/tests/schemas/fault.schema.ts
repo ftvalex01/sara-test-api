@@ -7,6 +7,7 @@ export type FaultDocument = Document & {
   questionId: Types.ObjectId; // Referencia a la pregunta que fue fallada
   attemptedAnswer: string; // La respuesta que el usuario intentó
   createdAt: Date; // Fecha en que la pregunta fue fallada
+  testName?: string;
 };
 
 @Schema()
@@ -22,6 +23,9 @@ export class Fault {
 
   @Prop({ default: Date.now })
   createdAt: Date;
+
+  @Prop() 
+  testName?: string;
 }
 
 export const FaultSchema = SchemaFactory.createForClass(Fault);

@@ -35,8 +35,8 @@ async getCountFaults(@Param('userId') userId: string): Promise<{count: number}> 
 
 @Post('faults')
 async getFaultsTest(@Body() body: any): Promise<Question[]> {
-  const { userId, limit } = body;
-  return this.testsService.getFaultsTest(userId, limit);
+  const { userId, limit, testName  } = body;
+  return this.testsService.getFaultsTest(userId, limit, testName );
 }
 
 
