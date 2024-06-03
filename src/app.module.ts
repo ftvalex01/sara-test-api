@@ -14,7 +14,7 @@ import { TestsModule } from './tests/tests.module';
     UsersModule,
     QuestionsModule,
     TestsModule,
-    MongooseModule.forRoot(process.env.DATABASE_URL),
+    MongooseModule.forRoot(process.env.MONGODB_URI),
   ],
   controllers: [],
   providers: [],
