@@ -21,38 +21,32 @@ export class TestsController {
     return this.testsService.saveCompletedTest(completedTestDto);
   }
 
-
   @Get('faults/:userId')
   async getFaults(@Param('userId') userId: string): Promise<Question[]> {
     return this.testsService.getFaults(userId);
   }
-// En tu controlador de NestJS
-@Get('count-faults/:userId')
-async getCountFaults(@Param('userId') userId: string): Promise<{count: number}> {
-  const count = await this.testsService.countFaults(userId);
-  return { count };
-}
 
-@Post('faults')
-async getFaultsTest(@Body() body: any): Promise<Question[]> {
-  const { userId, limit, testName  } = body;
-  return this.testsService.getFaultsTest(userId, limit, testName );
-}
+  @Get('count-faults/:userId')
+  async getCountFaults(@Param('userId') userId: string): Promise<{ count: number }> {
+    const count = await this.testsService.countFaults(userId);
+    return { count };
+  }
 
+  @Post('faults')
+  async getFaultsTest(@Body() body: any): Promise<Question[]> {
+    const { userId, limit, testName } = body;
+    return this.testsService.getFaultsTest(userId, limit, testName);
+  }
 
   @Post('reset/:userId')
   async resetTests(@Param('userId') userId: string): Promise<{ success: boolean }> {
     return this.testsService.resetCompletedTests(userId);
   }
-  
 
   @Get('completed/:userId')
   async getCompletedTests(@Param('userId') userId: string) {
     return this.testsService.getCompletedTests(userId);
   }
-
-  
-  
 }
 
 

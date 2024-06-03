@@ -25,7 +25,6 @@ export class TestsService {
 
   async saveCompletedTest(completedTestData: CompletedTestDto): Promise<TestResultsDto> {
     // Guarda el test completado
-    console.log(completedTestData)
     const newCompletedTest = new this.completedTestModel({
       userId: new Types.ObjectId(completedTestData.userId),
       questions: completedTestData.answers.map(answer => new Types.ObjectId(answer.questionId)),
@@ -34,7 +33,7 @@ export class TestsService {
       testName: completedTestData.testName,
     });
     await newCompletedTest.save();
-
+  
     // Detalles de las respuestas
     const questions = await this.questionModel.find({ '_id': { $in: completedTestData.answers.map(a => a.questionId) } }).exec();
     const details = completedTestData.answers.map(answer => {
@@ -42,28 +41,31 @@ export class TestsService {
       const isCorrect = question?.correct_answer === answer.selectedOption;
       return { questionId: answer.questionId, correctAnswer: question?.correct_answer, selectedAnswer: answer.selectedOption, isCorrect };
     });
-    // Guarda las respuestas falladas para futuros tests
-    const faults = details.filter(d => !d.isCorrect).map(faultyAnswer => ({
+  
+    // Filtra para encontrar sólo fallos no acertados previamente
+    const existingFaults = await this.faultModel.find({
       userId: new Types.ObjectId(completedTestData.userId),
-      questionId: new Types.ObjectId(faultyAnswer.questionId),
-      attemptedAnswer: faultyAnswer.selectedAnswer,
-      createdAt: new Date(),
-      testName: completedTestData.testName,
-    }));
-
-    if (faults.length > 0) {
+      questionId: { $in: details.filter(d => !d.isCorrect).map(d => new Types.ObjectId(d.questionId)) }
+    }).exec();
+  
+    const newFaults = details.filter(d => !d.isCorrect && !existingFaults.some(fault => fault.questionId.toString() === d.questionId));
+    if (newFaults.length > 0) {
+      const faults = newFaults.map(faultyAnswer => ({
+        userId: new Types.ObjectId(completedTestData.userId),
+        questionId: new Types.ObjectId(faultyAnswer.questionId),
+        attemptedAnswer: faultyAnswer.selectedAnswer,
+        createdAt: new Date(),
+        testName: completedTestData.testName,
+      }));
       await this.faultModel.insertMany(faults);
     }
-    // Filtra para encontrar sólo fallos no acertados previamente
-
-    const newFaults = details.filter(d => !d.isCorrect && !this.faultModel.exists({ userId: new Types.ObjectId(completedTestData.userId), questionId: new Types.ObjectId(d.questionId) }));
-    await this.faultModel.insertMany(newFaults);
-
-    // Elimina o actualiza fallos acertados
-    details.filter(d => d.isCorrect).forEach(async (detail) => {
-      await this.faultModel.deleteOne({ userId: new Types.ObjectId(completedTestData.userId), questionId: new Types.ObjectId(detail.questionId) });
+  
+    // Elimina los fallos corregidos
+    await this.faultModel.deleteMany({
+      userId: new Types.ObjectId(completedTestData.userId),
+      questionId: { $in: details.filter(d => d.isCorrect).map(d => new Types.ObjectId(d.questionId)) }
     });
-
+  
     // Devuelve los resultados
     const results = {
       correctCount: details.filter(d => d.isCorrect).length,
@@ -73,6 +75,7 @@ export class TestsService {
     };
     return results;
   }
+  
 
   async getFaults(userId: string): Promise<Question[]> {
     const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId) }).exec();
