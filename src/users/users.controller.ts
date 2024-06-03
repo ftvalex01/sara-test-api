@@ -1,4 +1,6 @@
+// src/users/users.controller.ts
 import { Controller, Post, Get, Body, Request, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
 import { LocalAuthGuard } from '../auth/local-auth.guard';
 import { AuthService } from '../auth/auth.service';
@@ -13,13 +15,14 @@ export class UsersController {
   ) {}
 
   @UseGuards(LocalAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60 } })
   @Post('login')
   async login(@Body() loginUserDto: LoginUserDto, @Request() req) {
     console.log(req.user);
     return this.authService.login(loginUserDto);
   }
 
-  @UseGuards(JwtAuthGuard) 
+  @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
     const user = await this.usersService.findOne(req.user.username);
