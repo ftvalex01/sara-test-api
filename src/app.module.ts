@@ -6,7 +6,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { TestsModule } from './tests/tests.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
+import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     ThrottlerModule.forRoot([{
@@ -17,6 +17,7 @@ import { AppService } from './app.service';
     QuestionsModule,
     TestsModule,
     MongooseModule.forRoot(process.env.DATABASE_URL),
+    ConfigModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],
