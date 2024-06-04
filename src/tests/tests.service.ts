@@ -47,8 +47,11 @@ export class TestsService {
       testName: completedTestData.testName,
     }));
 
-    if (faults.length > 0) {
-      await this.faultModel.insertMany(faults);
+    for (const fault of faults) {
+      const existingFault = await this.faultModel.findOne({ userId: fault.userId, questionId: fault.questionId });
+      if (!existingFault) {
+        await this.faultModel.create(fault);
+      }
     }
 
     details.filter(d => d.isCorrect).forEach(async (detail) => {
