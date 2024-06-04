@@ -31,4 +31,14 @@ export class UsersController {
     }
     return user;
   }
+
+  @Post() // Endpoint para crear usuarios
+  async createUser(@Body() createUserDto: any) {
+    try {
+      const newUser = await this.usersService.create(createUserDto);
+      return newUser;
+    } catch (error) {
+      throw new HttpException('Error al crear el usuario', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

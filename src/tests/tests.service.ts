@@ -20,7 +20,7 @@ export class TestsService {
     const completedQuestionsIds = await this.completedTestModel.find({ userId }).distinct('questions');
     const availableQuestions = await this.questionModel.find({ _id: { $nin: completedQuestionsIds } }).limit(numberOfQuestions).exec();
     return availableQuestions;
-  }
+}
 
   async saveCompletedTest(completedTestData: CompletedTestDto): Promise<TestResultsDto> {
     const newCompletedTest = new this.completedTestModel({
