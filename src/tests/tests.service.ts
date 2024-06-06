@@ -1,8 +1,7 @@
-// src/tests/tests.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Question, QuestionDocument } from 'src/questions/schema/question.schema';
+import { Model, Types } from 'mongoose';
+import { QuestionCollection, QuestionItem } from 'src/questions/schema/question.schema';
 import { CompletedTest, CompletedTestDocument } from './schemas/completed-test.schema';
 import { Fault, FaultDocument } from './schemas/fault.schema';
 import { CompletedTestDto } from './dto/completed-test.dto';
@@ -11,20 +10,32 @@ import { TestResultsDto } from './dto/test-results.dto';
 @Injectable()
 export class TestsService {
   constructor(
-    @InjectModel(Question.name) private questionModel: Model<QuestionDocument>,
+    @InjectModel(QuestionCollection.name) private questionModel: Model<QuestionCollection>,
     @InjectModel(CompletedTest.name) private completedTestModel: Model<CompletedTestDocument>,
     @InjectModel(Fault.name) private faultModel: Model<FaultDocument>,
   ) {}
 
-  async generateTest(userId: string, numberOfQuestions: number): Promise<Question[]> {
-    const completedQuestionsIds = await this.completedTestModel.find({ userId }).distinct('questions');
-    const availableQuestions = await this.questionModel.find({ _id: { $nin: completedQuestionsIds } }).limit(numberOfQuestions).exec();
-    return availableQuestions;
-}
+  async generateTest(userId: string, numberOfQuestions: number, category: string): Promise<QuestionItem[]> {
+    const completedQuestionsIds = await this.completedTestModel.find({ userId: new Types.ObjectId(userId) }).distinct('questions');
+    const availableQuestionDocs = await this.questionModel.find({ category }).exec();
+
+    const availableQuestions = availableQuestionDocs.flatMap(doc => doc.questions);
+    const filteredQuestions = availableQuestions.filter(q => !completedQuestionsIds.includes(q.id));
+
+    return filteredQuestions.slice(0, numberOfQuestions);
+  }
+
+  async getAvailableQuestions(userId: string, category: string): Promise<QuestionItem[]> {
+    const completedQuestionsIds = await this.completedTestModel.find({ userId: new Types.ObjectId(userId) }).distinct('questions');
+    const availableQuestionDocs = await this.questionModel.find({ category }).exec();
+
+    const availableQuestions = availableQuestionDocs.flatMap(doc => doc.questions);
+    return availableQuestions.filter(q => !completedQuestionsIds.includes(q.id));
+  }
 
   async saveCompletedTest(completedTestData: CompletedTestDto): Promise<TestResultsDto> {
     const newCompletedTest = new this.completedTestModel({
-      userId: completedTestData.userId,
+      userId: new Types.ObjectId(completedTestData.userId),
       questions: completedTestData.answers.map(answer => answer.questionId),
       answers: completedTestData.answers.map(answer => answer.selectedOption),
       createdAt: new Date(),
@@ -32,15 +43,18 @@ export class TestsService {
     });
     await newCompletedTest.save();
 
-    const questions = await this.questionModel.find({ '_id': { $in: completedTestData.answers.map(a => a.questionId) } }).exec();
+    const questionIds = completedTestData.answers.map(a => a.questionId);
+    const questionDocs = await this.questionModel.find({ 'questions.id': { $in: questionIds } }).exec();
+    const questions = questionDocs.flatMap(doc => doc.questions);
+
     const details = completedTestData.answers.map(answer => {
-      const question = questions.find(q => q._id.toString() === answer.questionId);
+      const question = questions.find(q => q.id === answer.questionId);
       const isCorrect = question?.correct_answer === answer.selectedOption;
-      return { questionId: answer.questionId, correctAnswer: question?.correct_answer, selectedAnswer: answer.selectedOption, isCorrect };
+      return { questionId: answer.questionId, correct_answer: question?.correct_answer, selectedAnswer: answer.selectedOption, isCorrect };
     });
 
     const faults = details.filter(d => !d.isCorrect).map(faultyAnswer => ({
-      userId: completedTestData.userId,
+      userId: new Types.ObjectId(completedTestData.userId),
       questionId: faultyAnswer.questionId,
       attemptedAnswer: faultyAnswer.selectedAnswer,
       createdAt: new Date(),
@@ -54,11 +68,11 @@ export class TestsService {
       }
     }
 
-    details.filter(d => d.isCorrect).forEach(async (detail) => {
-      await this.faultModel.deleteOne({ userId: completedTestData.userId, questionId: detail.questionId });
-    });
+    for (const detail of details.filter(d => d.isCorrect)) {
+      await this.faultModel.deleteOne({ userId: new Types.ObjectId(completedTestData.userId), questionId: detail.questionId });
+    }
 
-    const results = {
+    const results: TestResultsDto = {
       correctCount: details.filter(d => d.isCorrect).length,
       incorrectCount: details.filter(d => !d.isCorrect).length,
       totalQuestions: details.length,
@@ -67,26 +81,28 @@ export class TestsService {
     return results;
   }
 
-  async getFaults(userId: string): Promise<Question[]> {
-    const faults = await this.faultModel.find({ userId }).exec();
+  async getFaults(userId: string): Promise<QuestionItem[]> {
+    const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId) }).exec();
     const questionIds = faults.map(fault => fault.questionId);
-    return this.questionModel.find({ _id: { $in: questionIds } }).exec();
+    const questionDocs = await this.questionModel.find({ 'questions.id': { $in: questionIds } }).exec();
+    return questionDocs.flatMap(doc => doc.questions).filter(q => questionIds.includes(q.id));
   }
 
-  async getFaultsTest(userId: string, limit: number, testName: string): Promise<Question[]> {
-    const faults = await this.faultModel.find({ userId }).limit(limit).exec();
+  async getFaultsTest(userId: string, limit: number, testName: string, category: string): Promise<QuestionItem[]> {
+    const faults = await this.faultModel.find({ userId: new Types.ObjectId(userId), testName }).limit(limit).exec();
     const questionIds = faults.map(fault => fault.questionId);
-    return this.questionModel.find({ _id: { $in: questionIds } }).exec();
+    const questionDocs = await this.questionModel.find({ 'questions.id': { $in: questionIds }, category }).exec();
+    return questionDocs.flatMap(doc => doc.questions).filter(q => questionIds.includes(q.id));
   }
 
   async countFaults(userId: string): Promise<number> {
-    return this.faultModel.countDocuments({ userId }).exec();
+    return this.faultModel.countDocuments({ userId: new Types.ObjectId(userId) }).exec();
   }
 
   async resetCompletedTests(userId: string): Promise<{ success: boolean }> {
     try {
-      await this.completedTestModel.deleteMany({ userId });
-      await this.faultModel.deleteMany({ userId });
+      await this.completedTestModel.deleteMany({ userId: new Types.ObjectId(userId) });
+      await this.faultModel.deleteMany({ userId: new Types.ObjectId(userId) });
       return { success: true };
     } catch (error) {
       console.error('Error resetting completed tests:', error);
@@ -95,23 +111,24 @@ export class TestsService {
   }
 
   async getCompletedTests(userId?: string): Promise<any[]> {
-    const query = userId ? { userId } : {};
-    const tests = await this.completedTestModel.find(query)
-      .populate({
-        path: 'questions',
-        model: 'Question',
-        select: 'question options correct_answer'
-      })
-      .exec();
+    const query = userId ? { userId: new Types.ObjectId(userId) } : {};
+    const tests = await this.completedTestModel.find(query).exec();
+
+    const questionIds = tests.flatMap(test => test.questions);
+    const questionDocs = await this.questionModel.find({ 'questions.id': { $in: questionIds } }).exec();
+    const allQuestions = questionDocs.flatMap(doc => doc.questions);
 
     return tests.map(test => ({
       ...test.toObject(),
-      questions: (test.questions as any[]).map(question => ({
-        questionId: question._id.toString(),
-        question: question.question,
-        options: question.options,
-        correctAnswer: question.correct_answer
-      })),
+      questions: (test.questions as number[]).map(questionId => {
+        const questionDoc = allQuestions.find(q => q.id === questionId);
+        return {
+          questionId: questionDoc?.id,
+          question: questionDoc?.question,
+          options: questionDoc?.options,
+          correct_answer: questionDoc?.correct_answer,
+        };
+      }),
       answers: test.answers
     }));
   }

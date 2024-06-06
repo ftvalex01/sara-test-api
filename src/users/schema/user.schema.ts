@@ -1,3 +1,4 @@
+// src/users/schema/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -14,6 +15,9 @@ export class User {
     set: (password: string) => bcrypt.hashSync(password, 10) 
   })
   password: string;
+
+  @Prop({ required: true })
+  category: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

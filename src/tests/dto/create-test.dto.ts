@@ -13,4 +13,8 @@ export class CreateTestDto {
   @IsString()
   @IsOptional()
   testName?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
 }

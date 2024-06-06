@@ -1,4 +1,3 @@
-
 // src/auth/auth.service.ts
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -22,18 +21,17 @@ export class AuthService {
     return userWithoutPassword;
   }
 
-// AuthService en NestJS
-async login(loginUserDto: LoginUserDto): Promise<any> {
-  const user = await this.usersService.validateUser(loginUserDto.username, loginUserDto.password);
-  if (!user) {
-    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+  async login(loginUserDto: LoginUserDto): Promise<any> {
+    const user = await this.usersService.validateUser(loginUserDto.username, loginUserDto.password);
+    if (!user) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+    const payload = { username: user.username, sub: user._id, category: user.category };
+    return {
+      access_token: this.jwtService.sign(payload),
+      username: user.username,
+      userId: user._id,
+      category: user.category
+    };
   }
-  const payload = { username: user.username, sub: user._id };
-  return {
-    access_token: this.jwtService.sign(payload),
-    username: user.username,
-    userId: user._id  
-  };
-}
-
 }

@@ -1,19 +1,22 @@
-// src/tests/tests.controller.ts
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query } from '@nestjs/common';
 import { TestsService } from './tests.service';
 import { CreateTestDto } from './dto/create-test.dto';
-import { CompletedTestDto } from './dto/completed-test.dto';
-import { Question } from 'src/questions/schema/question.schema';
+import { QuestionItem } from 'src/questions/schema/question.schema';
 import { TestResultsDto } from './dto/test-results.dto';
-import { CompletedTest } from './schemas/completed-test.schema';
+import { CompletedTestDto } from './dto/completed-test.dto';
 
 @Controller('tests')
 export class TestsController {
   constructor(private readonly testsService: TestsService) {}
 
   @Post('generate')
-  async generateTest(@Body() createTestDto: CreateTestDto): Promise<Question[]> {
-    return this.testsService.generateTest(createTestDto.userId, createTestDto.numberOfQuestions);
+  async generateTest(@Body() createTestDto: CreateTestDto): Promise<QuestionItem[]> {
+    return this.testsService.generateTest(createTestDto.userId, createTestDto.numberOfQuestions, createTestDto.category);
+  }
+
+  @Get('available-questions')
+  async getAvailableQuestions(@Query('userId') userId: string, @Query('category') category: string): Promise<QuestionItem[]> {
+    return this.testsService.getAvailableQuestions(userId, category);
   }
 
   @Post('complete')
@@ -22,7 +25,7 @@ export class TestsController {
   }
 
   @Get('faults/:userId')
-  async getFaults(@Param('userId') userId: string): Promise<Question[]> {
+  async getFaults(@Param('userId') userId: string): Promise<QuestionItem[]> {
     return this.testsService.getFaults(userId);
   }
 
@@ -33,9 +36,9 @@ export class TestsController {
   }
 
   @Post('faults')
-  async getFaultsTest(@Body() body: any): Promise<Question[]> {
-    const { userId, limit, testName } = body;
-    return this.testsService.getFaultsTest(userId, limit, testName);
+  async getFaultsTest(@Body() body: any): Promise<QuestionItem[]> {
+    const { userId, limit, testName, category } = body;
+    return this.testsService.getFaultsTest(userId, limit, testName, category);
   }
 
   @Post('reset/:userId')
@@ -48,5 +51,3 @@ export class TestsController {
     return this.testsService.getCompletedTests(userId);
   }
 }
-
-

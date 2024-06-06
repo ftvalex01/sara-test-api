@@ -1,11 +1,9 @@
-// src/tests/schemas/completed-test.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Question } from '../../questions/schema/question.schema';
 
 export type CompletedTestDocument = Document & {
   userId: Types.ObjectId;
-  questions: Types.ObjectId[];
+  questions: number[]; // Cambiado a número ya que estamos usando el campo id de las preguntas
   answers: string[];
   createdAt: Date;
   testName?: string;
@@ -16,8 +14,8 @@ export class CompletedTest {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   userId: Types.ObjectId;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Question' }] })
-  questions: Types.ObjectId[];
+  @Prop({ type: [Number], required: true })
+  questions: number[];
 
   @Prop()
   answers: string[];
@@ -25,7 +23,7 @@ export class CompletedTest {
   @Prop({ default: Date.now })
   createdAt: Date;
 
-  @Prop() 
+  @Prop()
   testName?: string;
 }
 

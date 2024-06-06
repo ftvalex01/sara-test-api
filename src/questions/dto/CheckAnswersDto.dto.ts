@@ -1,11 +1,10 @@
-// src/questions/dto/check-answers.dto.ts
-import { ValidateNested, IsArray, IsNotEmpty, IsMongoId, IsString } from 'class-validator';
+import { ValidateNested, IsArray, IsNotEmpty, IsInt, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AnswerDto {
   @IsNotEmpty()
-  @IsMongoId()
-  readonly questionId: string;
+  @IsInt()
+  readonly questionId: number;
 
   @IsNotEmpty()
   @IsString()

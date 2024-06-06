@@ -1,4 +1,3 @@
-// src/tests/dto/completed-test.dto.ts
 import { IsMongoId, IsArray, ValidateNested, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AnswerDto } from '../../questions/dto/CheckAnswersDto.dto';
@@ -14,5 +13,5 @@ export class CompletedTestDto {
 
   @IsString()
   @IsOptional()
-  testName?: string; 
+  testName?: string;
 }
