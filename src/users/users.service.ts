@@ -1,5 +1,4 @@
-// src/users/users.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schema/user.schema';
 import { Model } from 'mongoose';
@@ -10,23 +9,42 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async findOne(username: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ username }).exec();
+    try {
+      return await this.userModel.findOne({ username }).exec();
+    } catch (error) {
+      throw new HttpException('Database error: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   async validateUser(username: string, pass: string): Promise<UserDocument | null> {
-    const user = await this.findOne(username);
-    if (user && await bcrypt.compare(pass, user.password)) {
+    try {
+      const user = await this.findOne(username);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      const isMatch = await bcrypt.compare(pass, user.password);
+      if (!isMatch) {
+        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+      }
       return user;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException('Database error: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    return null;
   }
 
   async create(userDto: { username: string; password: string }): Promise<UserDocument> {
-    const hashedPassword = await bcrypt.hash(userDto.password, 10);
-    const newUser = new this.userModel({
-      username: userDto.username,
-      password: hashedPassword
-    });
-    return newUser.save();
+    try {
+      const hashedPassword = await bcrypt.hash(userDto.password, 10);
+      const newUser = new this.userModel({
+        username: userDto.username,
+        password: hashedPassword
+      });
+      return await newUser.save();
+    } catch (error) {
+      throw new HttpException('Database error: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
