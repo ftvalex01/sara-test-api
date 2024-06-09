@@ -16,7 +16,7 @@ class CreateQuestionItemDto {
 
   @IsNotEmpty()
   @IsNumber()
-  readonly id: number;  // Este id es el proporcionado en el JSON
+  readonly id: number; 
 }
 
 export class CreateQuestionDto {

@@ -14,4 +14,7 @@ export class CompletedTestDto {
   @IsString()
   @IsOptional()
   testName?: string;
+
+  @IsString()
+  category: string; 
 }

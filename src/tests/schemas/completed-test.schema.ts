@@ -3,10 +3,11 @@ import { Document, Types } from 'mongoose';
 
 export type CompletedTestDocument = Document & {
   userId: Types.ObjectId;
-  questions: number[]; // Cambiado a número ya que estamos usando el campo id de las preguntas
+  questions: number[]; 
   answers: string[];
   createdAt: Date;
   testName?: string;
+  category: string;
 };
 
 @Schema()
@@ -25,6 +26,9 @@ export class CompletedTest {
 
   @Prop()
   testName?: string;
+
+  @Prop()
+  category: string;
 }
 
 export const CompletedTestSchema = SchemaFactory.createForClass(CompletedTest);

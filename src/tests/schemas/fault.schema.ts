@@ -3,10 +3,11 @@ import { Document, Types } from 'mongoose';
 
 export type FaultDocument = Document & {
   userId: Types.ObjectId;
-  questionId: number; // Cambiado a número ya que estamos usando el campo id de las preguntas
+  questionId: number; 
   attemptedAnswer: string;
   createdAt: Date;
   testName?: string;
+  category: string;
 };
 
 @Schema()
@@ -25,6 +26,9 @@ export class Fault {
 
   @Prop()
   testName?: string;
+
+  @Prop({ required: true })
+  category: string;
 }
 
 export const FaultSchema = SchemaFactory.createForClass(Fault);
